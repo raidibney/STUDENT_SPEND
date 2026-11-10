@@ -1,0 +1,23 @@
+
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+*.env
+
+# Environment secrets
+.env
+.env.local
+
+# Next.js
+node_modules/
+.next/
+out/
+
+# Django
+db.sqlite3
+media/
+
+# IDE
+.vscode/

@@ -1,0 +1,7 @@
+
+Django
+djangorestframework
+psycopg[binary]
+numpy
+django-cors-headers
+python-dotenv
