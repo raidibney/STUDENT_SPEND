@@ -1,15 +1,21 @@
 
 import calendar
+import csv
+import io
+import json
 import numpy as np
 
 from datetime import date
 
 from django.utils import timezone
 from django.db.models import Sum
+from django.db import transaction
+from django.http import HttpResponse
 
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from .models import Expense, MonthlyBudget, CategoryBudget
 from .serializers import (
@@ -133,7 +139,7 @@ class AnalyticsView(APIView):
             })
 
         # Find the highest spending category.
-        if category_breakdown:
+        if total_expenses > 0:
             highest_category = max(
                 category_breakdown,
                 key=lambda item: item["spent"]
@@ -218,3 +224,246 @@ class AnalyticsView(APIView):
                 average_monthly_spending, 2
             ),
         })
+
+
+# ==========================================
+# JSON EXPORT
+# ==========================================
+
+class ExportExpensesJSONView(APIView):
+
+    def get(self, request):
+
+        expenses = Expense.objects.all().order_by('-date')
+        serializer = ExpenseSerializer(expenses, many=True)
+
+        response = HttpResponse(
+            json.dumps(serializer.data, indent=4),
+            content_type='application/json'
+        )
+
+        response['Content-Disposition'] = (
+            'attachment; filename="studentspend_expenses.json"'
+        )
+
+        return response
+
+
+# ==========================================
+# JSON IMPORT
+# ==========================================
+
+class ImportExpensesJSONView(APIView):
+
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+
+        uploaded_file = request.FILES.get('file')
+
+        if not uploaded_file:
+            return Response(
+                {"error": "Please upload a JSON file using the 'file' field."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not uploaded_file.name.lower().endswith('.json'):
+            return Response(
+                {"error": "Only JSON files are allowed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+
+            content = uploaded_file.read().decode('utf-8-sig')
+            records = json.loads(content)
+
+            if not isinstance(records, list):
+                raise ValueError(
+                    "JSON must contain a list of expenses."
+                )
+
+            if not records:
+                raise ValueError(
+                    "The JSON file contains no expenses."
+                )
+
+            serializers_list = []
+
+            for index, record in enumerate(records, start=1):
+
+                if not isinstance(record, dict):
+                    raise ValueError(
+                        f"Invalid expense record at row {index}."
+                    )
+
+                serializer = ExpenseSerializer(data=record)
+
+                if not serializer.is_valid():
+                    return Response(
+                        {
+                            "error": f"Invalid data at row {index}.",
+                            "details": serializer.errors
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                serializers_list.append(serializer)
+
+            with transaction.atomic():
+
+                for serializer in serializers_list:
+                    serializer.save()
+
+            return Response(
+                {
+                    "message": "JSON import successful!",
+                    "imported_records": len(serializers_list)
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        except (
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            ValueError
+        ) as error:
+
+            return Response(
+                {"error": str(error)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+# ==========================================
+# CSV EXPORT
+# ==========================================
+
+class ExportExpensesCSVView(APIView):
+
+    def get(self, request):
+
+        expenses = Expense.objects.all().order_by('-date')
+
+        response = HttpResponse(
+            content_type='text/csv; charset=utf-8'
+        )
+
+        response.write('\ufeff')
+
+        response['Content-Disposition'] = (
+            'attachment; filename="studentspend_expenses.csv"'
+        )
+
+        writer = csv.writer(response)
+
+        writer.writerow([
+            'title',
+            'amount',
+            'category',
+            'date',
+            'description'
+        ])
+
+        for expense in expenses:
+
+            writer.writerow([
+                expense.title,
+                expense.amount,
+                expense.category,
+                expense.date,
+                expense.description or ''
+            ])
+
+        return response
+
+
+# ==========================================
+# CSV IMPORT
+# ==========================================
+
+class ImportExpensesCSVView(APIView):
+
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+
+        uploaded_file = request.FILES.get('file')
+
+        if not uploaded_file:
+            return Response(
+                {"error": "Please upload a CSV file using the 'file' field."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not uploaded_file.name.lower().endswith('.csv'):
+            return Response(
+                {"error": "Only CSV files are allowed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+
+            content = uploaded_file.read().decode('utf-8-sig')
+            reader = csv.DictReader(io.StringIO(content))
+
+            required_columns = {
+                'title',
+                'amount',
+                'category',
+                'date',
+                'description'
+            }
+
+            if not reader.fieldnames or not required_columns.issubset(
+                set(reader.fieldnames)
+            ):
+                raise ValueError(
+                    "CSV file has missing or incorrect columns."
+                )
+
+            serializers_list = []
+
+            for index, record in enumerate(reader, start=1):
+
+                serializer = ExpenseSerializer(data=record)
+
+                if not serializer.is_valid():
+                    return Response(
+                        {
+                            "error": f"Invalid data at row {index}.",
+                            "details": serializer.errors
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                serializers_list.append(serializer)
+
+            if not serializers_list:
+                raise ValueError(
+                    "The CSV file contains no expenses."
+                )
+
+            with transaction.atomic():
+
+                for serializer in serializers_list:
+                    serializer.save()
+
+            return Response(
+                {
+                    "message": "CSV import successful!",
+                    "imported_records": len(serializers_list)
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        except (
+            UnicodeDecodeError,
+            csv.Error,
+            ValueError
+        ) as error:
+
+            return Response(
+                {"error": str(error)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
