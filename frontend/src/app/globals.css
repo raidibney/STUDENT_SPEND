@@ -1,0 +1,201 @@
+
+@import "tailwindcss";
+
+/* =========================================
+   STUDENTSPEND — PREMIUM FINTECH DESIGN
+========================================= */
+
+:root {
+  --background: #f5f7f6;
+  --foreground: #24332f;
+
+  --primary: #28594d;
+  --primary-hover: #1e483e;
+  --primary-light: #e4efe9;
+
+  --secondary: #eaf0ed;
+  --surface: #ffffff;
+  --surface-muted: #f8faf9;
+
+  --text-primary: #24332f;
+  --text-secondary: #71817b;
+  --text-muted: #9aa7a1;
+
+  --border: #e7ece9;
+
+  --success: #26966d;
+  --success-light: #e6f5ed;
+
+  --warning: #d99b35;
+  --warning-light: #fff5df;
+
+  --danger: #d75b5b;
+  --danger-light: #fff0f0;
+
+  --info: #5486c5;
+  --info-light: #edf4fc;
+
+  --radius-card: 18px;
+  --radius-button: 10px;
+
+  --shadow-card:
+    0 2px 8px rgba(35, 65, 55, 0.035),
+    0 10px 30px rgba(35, 65, 55, 0.035);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+
+  --color-secondary: var(--secondary);
+  --color-surface: var(--surface);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* =========================================
+   GLOBAL RESET & BASE STYLES
+========================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* =========================================
+   TYPOGRAPHY
+========================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* =========================================
+   FORM ELEMENTS
+========================================= */
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  color: var(--text-primary);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* =========================================
+   CUSTOM SCROLLBAR
+========================================= */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd7d1;
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9eafa6;
+}
+
+/* =========================================
+   SELECTION
+========================================= */
+
+::selection {
+  background: #d5e9df;
+  color: #214b3e;
+}
+
+/* =========================================
+   REUSABLE DESIGN UTILITIES
+========================================= */
+
+.card-shadow {
+  box-shadow: var(--shadow-card);
+}
+
+.soft-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.transition-smooth {
+  transition: all 0.2s ease;
+}
+
+/* =========================================
+   ACCESSIBILITY
+========================================= */
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
